@@ -2,7 +2,7 @@ name: Run Double Redirect Bot
 
 on:
   schedule:
-    - cron: '0 */6 * * *'  
+    - cron: '0 */6 * * *' 
   workflow_dispatch:       
 
 jobs:
@@ -10,6 +10,15 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
+    - name: Check if it's Friday after 18:00 or Saturday before 19:00
+      run: |
+        HOUR=$(date -u +"%H")
+        DAY=$(date -u +"%u")  # 5=Friday, 6=Saturday
+        if { [ "$DAY" -eq 5 ] && [ "$HOUR" -ge 18 ]; } || { [ "$DAY" -eq 6 ] && [ "$HOUR" -lt 19 ]; }; then
+          echo "Skipping run: It's between Friday 18:00 and Saturday 19:00 (UTC)"
+          exit 1
+        fi
+
     - name: Checkout repository
       uses: actions/checkout@v4
 
@@ -24,5 +33,4 @@ jobs:
     - name: Run bot
       env:
         BOT_PASSWORD: ${{ secrets.BOT_PASSWORD }}
-      run: |
-        python3 bot.py
+      run: python3 bot.py
