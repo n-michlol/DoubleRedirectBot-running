@@ -1,6 +1,7 @@
 import os
 import requests
 import time
+import re
 from urllib.parse import urlencode
 
 class DoubleRedirectBot:
@@ -52,7 +53,30 @@ class DoubleRedirectBot:
         response = self.session.get(self.api_url, params=params)
         return response.json()['query']['querypage']['results']
 
-    def get_redirect_target(self, title):
+    def get_redirect_target_and_section(self, title):
+        params = {
+            'action': 'query',
+            'titles': title,
+            'prop': 'revisions',
+            'rvprop': 'content',
+            'format': 'json'
+        }
+        response = self.session.get(self.api_url, params=params)
+        pages = response.json()['query']['pages']
+        
+        section = None
+        for page_id, page_data in pages.items():
+            if 'revisions' in page_data:
+                content = page_data['revisions'][0]['*']
+                redirect_match = re.search(r'#הפניה\s*\[\[(.*?)(?:#(.*?))?\]\]', content)
+                if redirect_match:
+                    target = redirect_match.group(1)
+                    section = redirect_match.group(2)
+                    return target, section
+        
+        return None, None
+
+    def get_final_target(self, title):
         params = {
             'action': 'query',
             'titles': title,
@@ -66,11 +90,16 @@ class DoubleRedirectBot:
                 return page['title']
         return None
 
-    def edit_page(self, title, new_target):
+    def edit_page(self, title, new_target, section=None):
+        if section:
+            redirect_text = f'#הפניה [[{new_target}#{section}]]'
+        else:
+            redirect_text = f'#הפניה [[{new_target}]]'
+            
         params = {
             'action': 'edit',
             'title': title,
-            'text': f'#הפניה [[{new_target}]]',
+            'text': redirect_text,
             'summary': 'בוט: תיקון הפניה כפולה',
             'bot': 'true',
             'token': self.edit_token,
@@ -88,15 +117,18 @@ class DoubleRedirectBot:
                 title = redirect['title']
                 print(f'מטפל בדף: {title}')
                 
-                final_target = self.get_redirect_target(title)
+                _, section = self.get_redirect_target_and_section(title)
+                final_target = self.get_final_target(title)
+                
                 if final_target:
-                    result = self.edit_page(title, final_target)
+                    result = self.edit_page(title, final_target, section)
                     if 'error' in result:
                         print(f'שגיאה בעריכת {title}: {result["error"]}')
                     else:
-                        print(f'תוקן בהצלחה: {title} -> {final_target}')
+                        section_info = f'#{section}' if section else ''
+                        print(f'תוקן בהצלחה: {title} -> {final_target}{section_info}')
                 
-                time.sleep(0)
+                time.sleep(1)
                 
             except Exception as e:
                 print(f'שגיאה בטיפול בדף {title}: {str(e)}')
