@@ -136,7 +136,7 @@ class DoubleRedirectBot:
 
 if __name__ == '__main__':
     username = 'נריה בוט@הפניות-כפולות'
-    password = os.getenv('BOT_PASSWORD')
+    password = os.getenv('BOT_PASSWORD') ## סיסמה מוסתרת
     
     bot = DoubleRedirectBot(username, password)
     bot.fix_double_redirects()
