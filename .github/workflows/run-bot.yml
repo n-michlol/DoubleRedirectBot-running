@@ -2,7 +2,7 @@ name: Run Double Redirect Bot
 
 on:
   schedule:
-    - cron: '0 */6 * * *' 
+    - cron: '30 4 * * *' 
   workflow_dispatch:       
 
 jobs:
@@ -21,15 +21,15 @@ jobs:
 
     - name: Checkout repository
       uses: actions/checkout@v4
-
+    
     - name: Set up Python
       uses: actions/setup-python@v4
       with:
         python-version: '3.11'
-
+    
     - name: Install dependencies
       run: pip install requests
-
+    
     - name: Run bot
       env:
         BOT_PASSWORD: ${{ secrets.BOT_PASSWORD }}
