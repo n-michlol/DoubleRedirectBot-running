@@ -11,26 +11,33 @@ jobs:
 
     steps:
     - name: Check if it's Friday after 18:00 or Saturday before 19:00
+      id: time-check
       run: |
         HOUR=$(date -u +"%H")
         DAY=$(date -u +"%u")  # 5=Friday, 6=Saturday
         if { [ "$DAY" -eq 5 ] && [ "$HOUR" -ge 18 ]; } || { [ "$DAY" -eq 6 ] && [ "$HOUR" -lt 19 ]; }; then
-          echo "Skipping run: It's between Friday 18:00 and Saturday 19:00 (UTC)"
-          exit 1
+          echo "SKIP_RUN=true" >> $GITHUB_ENV
+          echo "Scheduled run skipped: It's between Friday 18:00 and Saturday 19:00 (UTC)"
+        else
+          echo "SKIP_RUN=false" >> $GITHUB_ENV
         fi
 
     - name: Checkout repository
+      if: env.SKIP_RUN == 'false'
       uses: actions/checkout@v4
     
     - name: Set up Python
+      if: env.SKIP_RUN == 'false'
       uses: actions/setup-python@v4
       with:
         python-version: '3.11'
     
     - name: Install dependencies
+      if: env.SKIP_RUN == 'false'
       run: pip install requests
     
     - name: Run bot
+      if: env.SKIP_RUN == 'false'
       env:
         BOT_PASSWORD: ${{ secrets.BOT_PASSWORD }}
       run: python3 bot.py
